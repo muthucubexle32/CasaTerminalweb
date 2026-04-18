@@ -1,0 +1,327 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply font-sans antialiased text-gray-800;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #faf0e0;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #502d13;
+    border-radius: 9999px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #432610;
+  }
+}
+
+@layer components {
+  .container-padding {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .container-padding {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-padding {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+  
+  .section-title {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 700;
+    color: #502d13;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  @media (min-width: 768px) {
+    .section-title {
+      font-size: 2.25rem;
+      line-height: 2.5rem;
+    }
+  }
+  
+  .btn-primary {
+    background-color: #502d13;
+    color: white;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn-primary:hover {
+    background-color: #432610;
+    transform: scale(1.05);
+  }
+  
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+  
+  .btn-primary:focus {
+    outline: none;
+    outline-width: 2px;
+    lighting-color: #502d13;
+    stop-opacity: 0.5;
+  }
+  
+  .btn-secondary {
+    background-color: #e2c99e;
+    color: #502d13;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #d4b078;
+    transform: scale(1.05);
+  }
+  
+  .btn-secondary:active {
+    transform: scale(0.95);
+  }
+  
+  .input-field {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-width: 1px;
+    border-color: #d1d5db;
+    border-radius: 0.5rem;
+    outline: none;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+  
+  .input-field:focus {
+    outline: none;
+    outline-width: 2px;
+    outline-color: #502d13;
+    border-color: transparent;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(to bottom right, #faf0e0, #f5e1c1);
+  }
+  /* Add to your global CSS file */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+}
+
+/* Responsive utilities */
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  /* Fluid typography */
+  .text-fluid-xs {
+    font-size: clamp(0.75rem, 2vw, 0.875rem);
+  }
+  .text-fluid-sm {
+    font-size: clamp(0.875rem, 3vw, 1rem);
+  }
+  .text-fluid-base {
+    font-size: clamp(1rem, 4vw, 1.125rem);
+  }
+  .text-fluid-lg {
+    font-size: clamp(1.125rem, 5vw, 1.25rem);
+  }
+  .text-fluid-xl {
+    font-size: clamp(1.25rem, 6vw, 1.5rem);
+  }
+
+  /* Container queries for better responsiveness */
+  .container-query {
+    container-type: inline-size;
+  }
+}
+
+/* Touch-friendly interactions for mobile */
+@media (max-width: 768px) {
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-color: currentColor;
+  }
+}
+
+/* Additional animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Custom scrollbar for sidebar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(233, 221, 200, 0.1);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(233, 221, 200, 0.3);
+  border-radius: 20px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(233, 221, 200, 0.5);
+}
+
+/* Additional animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Custom scrollbar for sidebar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(233, 221, 200, 0.1);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(233, 221, 200, 0.3);
+  border-radius: 20px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(233, 221, 200, 0.5);
+}
+
+.input {
+  @apply w-full border border-gray-300 p-2.5 rounded-lg mb-3 focus:ring-2 focus:ring-secondary-400 outline-none;
+}
+
+.btn-primary {
+  @apply w-full bg-secondary-500 text-white py-2.5 rounded-lg hover:bg-secondary-600 transition;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
