@@ -8,7 +8,6 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState<string | null>(null);
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0);
   const [logoError, setLogoError] = useState(false);
@@ -20,12 +19,13 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Detect touch device (for mega menu behaviour)
   const isTouchDevice = useRef(
     typeof window !== 'undefined' &&
     ('ontouchstart' in window || navigator.maxTouchPoints > 0)
   ).current;
 
-  // Sync authentication state
+  // Sync authentication state from localStorage
   useEffect(() => {
     const syncAuth = () => {
       const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -44,11 +44,13 @@ const Navbar = () => {
     };
   }, []);
 
+  // Handle scroll, resize, and outside clicks
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", handleResize);
+
     const handleClickOutside = (event: MouseEvent) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
         setProfileDropdownOpen(false);
@@ -62,11 +64,11 @@ const Navbar = () => {
     };
   }, []);
 
+  // Close menu on Escape key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsOpen(false);
-
         setActiveMegaMenu(null);
         setProfileDropdownOpen(false);
       }
@@ -75,6 +77,7 @@ const Navbar = () => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
+  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => { document.body.style.overflow = "unset"; };
@@ -187,17 +190,24 @@ const Navbar = () => {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-[#502d13]/95 backdrop-blur-md shadow-lg' : 'bg-[#502d13]'
-          }`}
+        className={`fixed w-full z-50 transition-all duration-300 ${
+          isScrolled
+            ? 'bg-[#502d13]/95 backdrop-blur-md shadow-lg'
+            : 'bg-[#502d13]'
+        }`}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 md:h-20">
             {/* Logo */}
-            <Link to="/" onClick={() => window.scrollTo(0, 0)} className="flex items-center space-x-1 sm:space-x-2 group shrink-0">
+            <Link
+              to="/"
+              onClick={() => window.scrollTo(0, 0)}
+              className="flex items-center space-x-1 sm:space-x-2 group shrink-0"
+            >
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.5 }}
-                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center overflow-hidden"
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center overflow-hidden bg-[#e9ddc8]/10"
               >
                 {!logoError ? (
                   <img
@@ -207,10 +217,10 @@ const Navbar = () => {
                     onError={() => setLogoError(true)}
                   />
                 ) : (
-                  <span className="text-[#502d13] font-bold text-sm sm:text-base md:text-xl">CT</span>
+                  <span className="text-[#e9ddc8] font-bold text-sm sm:text-base md:text-xl">CT</span>
                 )}
               </motion.div>
-              <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-[#e9ddc8] group-hover:text-white transition-colors truncate max-w-[120px] sm:max-w-none">
+              <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-[#e9ddc8] group-hover:text-white transition-colors truncate max-w-[120px] sm:max-w-none">
                 CASA TERMINAL
               </span>
             </Link>
@@ -242,12 +252,13 @@ const Navbar = () => {
                           scrollToSection('services');
                         }
                       }}
-                      className="text-[#e9ddc8]/90 hover:text-white font-medium transition-colors relative group flex items-center gap-1 text-sm xl:text-base px-2 xl:px-3 py-2"
+                      className="text-[#e9ddc8]/90 hover:text-white font-medium transition-colors relative group flex items-center gap-1 text-sm xl:text-base px-2 xl:px-3 py-2 rounded-md"
                     >
                       {link.label}
                       <ChevronDown
-                        className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform duration-300 ${activeMegaMenu === link.label ? 'rotate-180' : ''
-                          }`}
+                        className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform duration-300 ${
+                          activeMegaMenu === link.label ? 'rotate-180' : ''
+                        }`}
                       />
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e9ddc8] transition-all group-hover:w-full"></span>
                     </button>
@@ -255,14 +266,14 @@ const Navbar = () => {
                     <a
                       href={link.href}
                       onClick={(e) => handleNavClick(e, link.href)}
-                      className="text-[#e9ddc8]/90 hover:text-white font-medium transition-colors relative group text-sm xl:text-base px-2 xl:px-3 py-2"
+                      className="text-[#e9ddc8]/90 hover:text-white font-medium transition-colors relative group text-sm xl:text-base px-2 xl:px-3 py-2 rounded-md"
                     >
                       {link.label}
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e9ddc8] transition-all group-hover:w-full"></span>
                     </a>
                   )}
 
-                  {/* Mega Menu Dropdown */}
+                  {/* Mega Menu Dropdown (Desktop) */}
                   <AnimatePresence>
                     {link.megaMenu && activeMegaMenu === link.label && isDesktop && (
                       <motion.div
@@ -308,10 +319,8 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Action Icons */}
+            {/* Right side actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
-
-
               {/* Profile Dropdown / Login Redirect */}
               <div className="relative" ref={profileDropdownRef}>
                 <button
@@ -361,23 +370,23 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Become a Member / Logout Button - Mobile: icon only, Desktop: full pill */}
+              {/* Become a Member / Logout Button - Responsive */}
               {!isLoggedIn ? (
                 <>
                   {/* Mobile: Icon only (visible on screens < 640px) */}
                   <Link
                     to="/member"
                     onClick={() => setIsOpen(false)}
-                    className="sm:hidden flex items-center justify-center text-[#e9ddc8] hover:bg-white transition-colors"
+                    className="sm:hidden flex items-center justify-center text-[#e9ddc8] hover:bg-[#e9ddc8]/10 p-1.5 rounded-lg transition-colors"
                     aria-label="Become a Member"
                   >
                     <LogIn className="w-5 h-5" />
                   </Link>
-                  {/* Desktop: Full pill with text (visible on screens >= 640px) */}
+                  {/* Tablet+Desktop: Full pill with text */}
                   <Link
                     to="/member"
                     onClick={() => setIsOpen(false)}
-                    className="hidden sm:flex group items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-full bg-[#e9ddc8] text-[#502d13] hover:bg-white hover:shadow-md border border-[#d4c4a8] transition-all duration-200 font-medium text-sm sm:text-base"
+                    className="hidden sm:flex group items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#e9ddc8] text-[#502d13] hover:bg-white hover:shadow-md border border-[#d4c4a8] transition-all duration-200 font-medium text-sm sm:text-base"
                   >
                     <LogIn className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-0.5" />
                     <span>Become a Member</span>
@@ -388,15 +397,15 @@ const Navbar = () => {
                   {/* Mobile: Icon only */}
                   <button
                     onClick={handleLogout}
-                    className="sm:hidden flex items-center justify-center text-[#e9ddc8] hover:bg-white transition-colors"
+                    className="sm:hidden flex items-center justify-center text-[#e9ddc8] hover:bg-[#e9ddc8]/10 p-1.5 rounded-lg transition-colors"
                     aria-label="Logout"
                   >
                     <LogOut className="w-5 h-5" />
                   </button>
-                  {/* Desktop: Full pill with text */}
+                  {/* Tablet+Desktop: Full pill */}
                   <button
                     onClick={handleLogout}
-                    className="hidden sm:flex group items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[#e9ddc8] hover:text-white hover:bg-red-500/80 font-medium text-sm sm:text-base"
+                    className="hidden sm:flex group items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[#e9ddc8] hover:text-white hover:bg-red-500/80 transition-all duration-200 font-medium text-sm sm:text-base"
                   >
                     <LogOut className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:-translate-x-0.5" />
                     <span>Logout</span>
@@ -430,7 +439,7 @@ const Navbar = () => {
               transition={{ duration: 0.3 }}
               className="lg:hidden bg-[#502d13] border-t border-[#e9ddc8]/20 overflow-y-auto max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)]"
             >
-              <div className="px-3 sm:px-4 py-4 sm:py-6 space-y-2 sm:space-y-3">
+              <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-2 sm:space-y-3">
                 {navLinks.map((link) => {
                   const Icon = link.icon;
                   return (
@@ -456,8 +465,9 @@ const Navbar = () => {
                             </span>
                             {link.megaMenu && (
                               <ChevronDown
-                                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${mobileMenuOpen === link.label ? "rotate-180" : ""
-                                  }`}
+                                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${
+                                  mobileMenuOpen === link.label ? "rotate-180" : ""
+                                }`}
                               />
                             )}
                           </button>
@@ -520,7 +530,7 @@ const Navbar = () => {
                   );
                 })}
 
-                {/* Mobile Action Buttons */}
+                {/* Mobile Action Buttons (Login/Logout) */}
                 <div className="pt-3 sm:pt-4 grid grid-cols-2 gap-2 sm:gap-3">
                   {isLoggedIn ? (
                     <>
@@ -559,8 +569,6 @@ const Navbar = () => {
           )}
         </AnimatePresence>
       </motion.nav>
-
-
 
       {/* Overlay for mobile menu */}
       <AnimatePresence>
