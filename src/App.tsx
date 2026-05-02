@@ -11,7 +11,7 @@ import ProductsPage from './pages/ProductsPage';
 
 // Auth Pages
 import AdminLoginPage from './pages/auth/AdminLoginPage';
-import UserLoginPage from './pages/auth/UserLoginPage';
+
 import ProtectedRoute from './components/admin/auth/ProtectedRoute';
 
 // Admin Components
@@ -95,7 +95,7 @@ function App() {
             />
 
             {/* Auth Routes */}
-            <Route path="/login" element={<UserLoginPage />} />
+
             <Route path="/admin/login" element={<AdminLoginPage />} />
 
             {/* Public Listings (with Layout) */}
@@ -139,7 +139,7 @@ function App() {
                 </Layout>
               }
             />
-
+            <Route path="/product/:id" element={<ProductsPage />} />
             {/* Public Registration Routes (no authentication required) */}
             <Route
               path="/seller/register"

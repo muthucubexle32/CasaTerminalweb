@@ -1,7 +1,9 @@
+// components/Navbar.tsx
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ChevronDown, User, LogIn, Package, Wrench, LogOut } from 'lucide-react';
+import LoginModal from './LoginModal';
 import logo from "/logo.png";
 
 const Navbar = () => {
@@ -11,38 +13,61 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<string | null>(null);
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0);
   const [logoError, setLogoError] = useState(false);
+  
+  // Authentication state (isolated)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userType, setUserType] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Login modal state
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Detect touch device (for mega menu behaviour)
   const isTouchDevice = useRef(
-    typeof window !== 'undefined' &&
-    ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
   ).current;
 
-  // Sync authentication state from localStorage
+  // Restore auth state from localStorage on mount
   useEffect(() => {
-    const syncAuth = () => {
-      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const type = localStorage.getItem('userType');
-      const name = localStorage.getItem('userName') || '';
-      setIsLoggedIn(loggedIn);
-      setUserType(type);
-      setUserName(name);
-    };
-    syncAuth();
-    window.addEventListener('storage', syncAuth);
-    window.addEventListener('focus', syncAuth);
-    return () => {
-      window.removeEventListener('storage', syncAuth);
-      window.removeEventListener('focus', syncAuth);
-    };
+    const auth = localStorage.getItem('auth_user');
+    if (auth) {
+      try {
+        const { isLoggedIn, role, name } = JSON.parse(auth);
+        setIsLoggedIn(isLoggedIn === true);
+        setUserRole(role || null);
+        setUserName(name || '');
+      } catch (e) {}
+    }
   }, []);
+
+  // Sync auth state to localStorage whenever it changes
+  useEffect(() => {
+    if (isLoggedIn) {
+      localStorage.setItem('auth_user', JSON.stringify({ isLoggedIn: true, role: userRole, name: userName }));
+    } else {
+      localStorage.removeItem('auth_user');
+    }
+  }, [isLoggedIn, userRole, userName]);
+
+  // Also sync with existing localStorage keys if they exist (optional, for compatibility)
+  useEffect(() => {
+    const syncWithExisting = () => {
+      const existingLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const existingType = localStorage.getItem('userType');
+      const existingName = localStorage.getItem('userName') || '';
+      if (existingLoggedIn && !isLoggedIn) {
+        setIsLoggedIn(true);
+        setUserRole(existingType);
+        setUserName(existingName);
+      }
+    };
+    syncWithExisting();
+    window.addEventListener('storage', syncWithExisting);
+    return () => window.removeEventListener('storage', syncWithExisting);
+  }, [isLoggedIn]);
 
   // Handle scroll, resize, and outside clicks
   useEffect(() => {
@@ -68,6 +93,7 @@ const Navbar = () => {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        setShowLoginModal(false);
         setIsOpen(false);
         setActiveMegaMenu(null);
         setProfileDropdownOpen(false);
@@ -83,17 +109,36 @@ const Navbar = () => {
     return () => { document.body.style.overflow = "unset"; };
   }, [isOpen]);
 
+  // Helper: determine dashboard link based on role
+  const getDashboardLink = () => {
+    if (userRole === 'admin') return '/admin/dashboard';
+    if (userRole === 'seller') return '/seller/dashboard';
+    if (userRole === 'contractor') return '/contractor/dashboard';
+    if (userRole === 'rental') return '/rental/dashboard';
+    return '/member';
+  };
+
+  // Logout handler
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
     setIsLoggedIn(false);
-    setUserType(null);
+    setUserRole(null);
     setUserName('');
     setProfileDropdownOpen(false);
+    // Clear both new and old storage keys
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
     navigate('/');
+  };
+
+  // Successful login callback from modal
+  const handleLoginSuccess = (role: string, name: string) => {
+    setIsLoggedIn(true);
+    setUserRole(role);
+    setUserName(name);
+    setShowLoginModal(false);
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -113,16 +158,10 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
-  const getDashboardLink = () => {
-    switch (userType) {
-      case 'seller': return '/seller/dashboard';
-      case 'contractor': return '/contractor/dashboard';
-      case 'rental': return '/rental/dashboard';
-      default: return '/member';
-    }
+  const toggleMobileMenu = (label: string) => {
+    setMobileMenuOpen(mobileMenuOpen === label ? null : label);
   };
 
-  // Navigation links with mega menu data
   const navLinks = [
     {
       label: "Services",
@@ -180,10 +219,6 @@ const Navbar = () => {
 
   const isDesktop = windowWidth >= 1024;
 
-  const toggleMobileMenu = (label: string) => {
-    setMobileMenuOpen(mobileMenuOpen === label ? null : label);
-  };
-
   return (
     <>
       <motion.nav
@@ -191,9 +226,7 @@ const Navbar = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
         className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-[#502d13]/95 backdrop-blur-md shadow-lg'
-            : 'bg-[#502d13]'
+          isScrolled ? 'bg-[#502d13]/95 backdrop-blur-md shadow-lg' : 'bg-[#502d13]'
         }`}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
@@ -232,14 +265,10 @@ const Navbar = () => {
                   key={link.label}
                   className="relative"
                   onMouseEnter={() => {
-                    if (!isTouchDevice && isDesktop && link.megaMenu) {
-                      setActiveMegaMenu(link.label);
-                    }
+                    if (!isTouchDevice && isDesktop && link.megaMenu) setActiveMegaMenu(link.label);
                   }}
                   onMouseLeave={() => {
-                    if (!isTouchDevice && isDesktop) {
-                      setActiveMegaMenu(null);
-                    }
+                    if (!isTouchDevice && isDesktop) setActiveMegaMenu(null);
                   }}
                 >
                   {link.megaMenu ? (
@@ -255,11 +284,7 @@ const Navbar = () => {
                       className="text-[#e9ddc8]/90 hover:text-white font-medium transition-colors relative group flex items-center gap-1 text-sm xl:text-base px-2 xl:px-3 py-2 rounded-md"
                     >
                       {link.label}
-                      <ChevronDown
-                        className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform duration-300 ${
-                          activeMegaMenu === link.label ? 'rotate-180' : ''
-                        }`}
-                      />
+                      <ChevronDown className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform duration-300 ${activeMegaMenu === link.label ? 'rotate-180' : ''}`} />
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e9ddc8] transition-all group-hover:w-full"></span>
                     </button>
                   ) : (
@@ -273,31 +298,30 @@ const Navbar = () => {
                     </a>
                   )}
 
-                  {/* Mega Menu Dropdown (Desktop) */}
+                  {/* Mega Menu Dropdown */}
                   <AnimatePresence>
                     {link.megaMenu && activeMegaMenu === link.label && isDesktop && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-screen max-w-[700px] sm:max-w-[600px] xl:max-w-[700px] bg-[#502d13] rounded-lg shadow-xl border border-[#e9ddc8]/20 overflow-hidden z-50"
+                        className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-screen max-w-[700px] bg-[#502d13] rounded-lg shadow-xl border border-[#e9ddc8]/20 overflow-hidden z-50"
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 xl:p-6">
                           {link.megaMenu.columns.map((column, idx) => {
                             const Icon = column.icon;
                             return (
                               <div key={idx}>
-                                <h4 className="font-semibold text-[#e9ddc8] mb-2 xl:mb-3 pb-1 xl:pb-2 border-b border-[#e9ddc8]/20 text-sm xl:text-base flex items-center gap-2">
+                                <h4 className="font-semibold text-[#e9ddc8] mb-2 pb-1 border-b border-[#e9ddc8]/20 text-sm flex items-center gap-2">
                                   {Icon && <Icon className="w-4 h-4" />}
                                   {column.title}
                                 </h4>
-                                <ul className="space-y-1 xl:space-y-2">
+                                <ul className="space-y-1">
                                   {column.links.map((item) => (
                                     <li key={item.name}>
                                       <Link
                                         to={item.href}
-                                        className="text-[#e9ddc8]/70 hover:text-white text-xs xl:text-sm transition-colors block hover:translate-x-1 transform duration-200 py-1"
+                                        className="text-[#e9ddc8]/70 hover:text-white text-xs transition-colors block hover:translate-x-1 py-1"
                                         onClick={() => {
                                           setActiveMegaMenu(null);
                                           window.scrollTo(0, 0);
@@ -321,12 +345,12 @@ const Navbar = () => {
 
             {/* Right side actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
-              {/* Profile Dropdown / Login Redirect */}
+              {/* User Icon / Profile Dropdown */}
               <div className="relative" ref={profileDropdownRef}>
                 <button
                   onClick={() => {
                     if (!isLoggedIn) {
-                      navigate('/login');
+                      setShowLoginModal(true);
                     } else {
                       setProfileDropdownOpen(!profileDropdownOpen);
                     }
@@ -348,7 +372,7 @@ const Navbar = () => {
                     >
                       <div className="p-3 border-b bg-gray-50">
                         <p className="font-medium text-gray-800 truncate">{userName || 'User'}</p>
-                        <p className="text-xs text-gray-500 capitalize">{userType}</p>
+                        <p className="text-xs text-gray-500 capitalize">{userRole}</p>
                       </div>
                       <div className="p-2">
                         <Link
@@ -373,7 +397,6 @@ const Navbar = () => {
               {/* Become a Member / Logout Button - Responsive */}
               {!isLoggedIn ? (
                 <>
-                  {/* Mobile: Icon only (visible on screens < 640px) */}
                   <Link
                     to="/member"
                     onClick={() => setIsOpen(false)}
@@ -382,7 +405,6 @@ const Navbar = () => {
                   >
                     <LogIn className="w-5 h-5" />
                   </Link>
-                  {/* Tablet+Desktop: Full pill with text */}
                   <Link
                     to="/member"
                     onClick={() => setIsOpen(false)}
@@ -394,7 +416,6 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  {/* Mobile: Icon only */}
                   <button
                     onClick={handleLogout}
                     className="sm:hidden flex items-center justify-center text-[#e9ddc8] hover:bg-[#e9ddc8]/10 p-1.5 rounded-lg transition-colors"
@@ -402,7 +423,6 @@ const Navbar = () => {
                   >
                     <LogOut className="w-5 h-5" />
                   </button>
-                  {/* Tablet+Desktop: Full pill */}
                   <button
                     onClick={handleLogout}
                     className="hidden sm:flex group items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[#e9ddc8] hover:text-white hover:bg-red-500/80 transition-all duration-200 font-medium text-sm sm:text-base"
@@ -419,24 +439,19 @@ const Navbar = () => {
                 className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-[#e9ddc8]/10 transition-colors"
                 aria-label={isOpen ? "Close menu" : "Open menu"}
               >
-                {isOpen ? (
-                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#e9ddc8]" />
-                ) : (
-                  <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-[#e9ddc8]" />
-                )}
+                {isOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6 text-[#e9ddc8]" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-[#e9ddc8]" />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu Drawer */}
+        {/* Mobile Menu Drawer (unchanged) */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
               className="lg:hidden bg-[#502d13] border-t border-[#e9ddc8]/20 overflow-y-auto max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)]"
             >
               <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-2 sm:space-y-3">
@@ -448,14 +463,9 @@ const Navbar = () => {
                         <>
                           <button
                             onClick={() => {
-                              if (link.label === 'Services') {
-                                toggleMobileMenu(link.label);
-                              } else if (link.label === 'Member') {
-                                navigate('/member');
-                                setIsOpen(false);
-                              } else {
-                                toggleMobileMenu(link.label);
-                              }
+                              if (link.label === 'Services') toggleMobileMenu(link.label);
+                              else if (link.label === 'Member') { navigate('/member'); setIsOpen(false); }
+                              else toggleMobileMenu(link.label);
                             }}
                             className="w-full flex items-center justify-between py-2 sm:py-3 text-[#e9ddc8] font-medium text-sm sm:text-base"
                           >
@@ -464,20 +474,15 @@ const Navbar = () => {
                               {link.label}
                             </span>
                             {link.megaMenu && (
-                              <ChevronDown
-                                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${
-                                  mobileMenuOpen === link.label ? "rotate-180" : ""
-                                }`}
-                              />
+                              <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${mobileMenuOpen === link.label ? 'rotate-180' : ''}`} />
                             )}
                           </button>
                           <AnimatePresence>
                             {mobileMenuOpen === link.label && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
+                                animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.3 }}
                                 className="overflow-hidden"
                               >
                                 <div className="pb-3 sm:pb-4 space-y-3 sm:space-y-4">
@@ -485,20 +490,17 @@ const Navbar = () => {
                                     const ColumnIcon = column.icon;
                                     return (
                                       <div key={idx}>
-                                        <h4 className="text-[#ece3d4] text-xs sm:text-sm font-semibold mb-1 sm:mb-2 px-2 flex items-center gap-2">
+                                        <h4 className="text-[#ece3d4] text-xs sm:text-sm font-semibold mb-1 px-2 flex items-center gap-2">
                                           {ColumnIcon && <ColumnIcon className="w-3 h-3 sm:w-4 sm:h-4" />}
                                           {column.title}
                                         </h4>
-                                        <ul className="space-y-1 sm:space-y-2">
+                                        <ul className="space-y-1">
                                           {column.links.map((item) => (
                                             <li key={item.name}>
                                               <Link
                                                 to={item.href}
-                                                className="block px-2 py-1.5 sm:py-2 text-[#e9ddc8]/80 hover:bg-[#e9ddc8]/10 rounded-lg transition-colors text-xs sm:text-sm"
-                                                onClick={() => {
-                                                  setIsOpen(false);
-                                                  window.scrollTo(0, 0);
-                                                }}
+                                                className="block px-2 py-1.5 text-[#e9ddc8]/80 hover:bg-[#e9ddc8]/10 rounded-lg text-xs"
+                                                onClick={() => { setIsOpen(false); window.scrollTo(0, 0); }}
                                               >
                                                 {item.name}
                                               </Link>
@@ -516,11 +518,8 @@ const Navbar = () => {
                       ) : (
                         <a
                           href={link.href}
-                          onClick={(e) => {
-                            handleNavClick(e, link.href);
-                            setIsOpen(false);
-                          }}
-                          className="flex items-center gap-2 py-2 sm:py-3 text-[#e9ddc8] font-medium hover:text-white transition-colors text-sm sm:text-base"
+                          onClick={(e) => { handleNavClick(e, link.href); setIsOpen(false); }}
+                          className="flex items-center gap-2 py-2 sm:py-3 text-[#e9ddc8] font-medium hover:text-white text-sm sm:text-base"
                         >
                           {Icon && <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                           {link.label}
@@ -529,38 +528,30 @@ const Navbar = () => {
                     </div>
                   );
                 })}
-
-                {/* Mobile Action Buttons (Login/Logout) */}
                 <div className="pt-3 sm:pt-4 grid grid-cols-2 gap-2 sm:gap-3">
                   {isLoggedIn ? (
                     <>
                       <Link
                         to={getDashboardLink()}
                         onClick={() => setIsOpen(false)}
-                        className="bg-[#e9ddc8] text-[#502d13] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-center hover:bg-white transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
+                        className="bg-[#e9ddc8] text-[#502d13] px-3 py-2 rounded-lg font-semibold text-center hover:bg-white flex items-center justify-center gap-1 text-xs sm:text-sm"
                       >
-                        <User className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span>Dashboard</span>
+                        <User className="w-3 h-3 sm:w-4 sm:h-4" /> Dashboard
                       </Link>
                       <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsOpen(false);
-                        }}
-                        className="bg-transparent border border-[#e9ddc8]/30 text-[#e9ddc8] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-center hover:bg-[#e9ddc8]/10 transition-colors text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2"
+                        onClick={() => { handleLogout(); setIsOpen(false); }}
+                        className="bg-transparent border border-[#e9ddc8]/30 text-[#e9ddc8] px-3 py-2 rounded-lg font-semibold text-center hover:bg-[#e9ddc8]/10 flex items-center justify-center gap-1 text-xs sm:text-sm"
                       >
-                        <LogOut className="w-3 h-3 sm:w-4 sm:h-4 rotate-180" />
-                        <span>Logout</span>
+                        <LogOut className="w-3 h-3 sm:w-4 sm:h-4 rotate-180" /> Logout
                       </button>
                     </>
                   ) : (
                     <Link
                       to="/login"
                       onClick={() => setIsOpen(false)}
-                      className="bg-[#e9ddc8] text-[#502d13] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-center hover:bg-white transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm col-span-2"
+                      className="bg-[#e9ddc8] text-[#502d13] px-3 py-2 rounded-lg font-semibold text-center hover:bg-white col-span-2 flex items-center justify-center gap-1 text-xs sm:text-sm"
                     >
-                      <LogIn className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span>User Login</span>
+                      <LogIn className="w-3 h-3 sm:w-4 sm:h-4" /> User Login
                     </Link>
                   )}
                 </div>
@@ -569,6 +560,13 @@ const Navbar = () => {
           )}
         </AnimatePresence>
       </motion.nav>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
       {/* Overlay for mobile menu */}
       <AnimatePresence>
